@@ -20,7 +20,7 @@ public class Main {
     public static void main(String[] args) throws IOException {
         WebDriverManager.chromedriver().setup();
         WebDriver driver = new ChromeDriver();
-        FileWriter csvWriter = new FileWriter("google_job_ids.csv");
+        FileWriter csvWriter = new FileWriter("google_job_ids2.csv");
 
         try {
             driver.get("https://www.linkedin.com/login");
@@ -30,7 +30,7 @@ public class Main {
             emailField.sendKeys("ayushsinha11@gmail.com");
 
             WebElement passwordField = driver.findElement(By.id("password"));
-            passwordField.sendKeys("Dummy@156");
+            passwordField.sendKeys("*********");
 
             driver.findElement(By.xpath("//button[@type='submit']")).click();
 
@@ -62,7 +62,9 @@ public class Main {
                 int maxResults = 950;
                 int currentPage = 1;
 
-                csvWriter.append("JobID\n");
+                String[] headers = {"JobID", "Job Role Name", "is_verified", "Role issued by", "Location", "posted_when", "raw_text"};
+                csvWriter.append(String.join(",", headers));
+                csvWriter.append("\n");
 
                 for(int i=0; i<=maxResults; i=i+25){
 
@@ -71,13 +73,30 @@ public class Main {
                     List<WebElement> searchResults = driver.findElements(By.xpath("//div[@data-job-id]"));
                     for(WebElement currentListing : searchResults){
                         String jobId = currentListing.getAttribute("data-job-id");
-                        if (jobId == null || jobId.isEmpty()) {
-                            jobId = currentListing.getText();
-                        }
 
-                        if (!jobId.isEmpty()) {
-                            csvWriter.append(jobId).append("\n");
-                        }
+                        List<String> jobDesc = List.of(currentListing.getText().split("\n"));
+                        StringBuilder line = new StringBuilder();
+
+                        line.append(jobId)
+                                .append(",")
+                                .append(jobDesc.get(0).replaceAll(",", "."))
+                                .append(",")
+                                .append(checkVerifiedStatus(jobDesc.get(1)))
+                                .append(",")
+                                .append(jobDesc.get(2).replaceAll(",", "."))
+                                .append(",")
+                                .append(jobDesc.get(3).replaceAll(",", "."))
+                                .append(",")
+                                .append(jobDesc.get(4).replaceAll(",", "."))
+                                .append(",")
+                                .append(currentListing.getText()
+                                        .replaceAll(",",".")
+                                        .replaceAll("\n","."))
+                                .append(",")
+                                .append("\n");
+
+                        csvWriter.append(line);
+
                     }
 
                     driver.findElement(By.xpath(String.format("//li[contains(@class, 'artdeco-pagination')]/button[@aria-label='Page %d']", currentPage + 1))).click();
@@ -96,5 +115,9 @@ public class Main {
             csvWriter.flush();
             csvWriter.close();
         }
+    }
+
+    private static boolean checkVerifiedStatus(String s) {
+        return s.toLowerCase().contains("verification");
     }
 }
